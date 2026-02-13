@@ -10,7 +10,6 @@ import {
   ErrorComponent,
 } from "@pankod/refine-mui";
 import {
-  Home,
   Folder,
   Schedule,
   Assessment,
