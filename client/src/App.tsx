@@ -31,7 +31,7 @@ import { parseJwt } from "utils/parse-jwt";
 
 import {
   Login,
-  Home as HomePage,
+  Home,
   Project,
   Timeline,
   KIPs,
@@ -217,7 +217,7 @@ function App() {
           routerProvider={routerProvider}
           authProvider={authProvider}
           LoginPage={Login}
-          DashboardPage={HomePage}
+          DashboardPage={Home}
         />
       </RefineSnackbarProvider>
       </PaneContextProvider>

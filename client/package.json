@@ -31,7 +31,7 @@
   },
   "scripts": {
     "dev": "refine start",
-    "build": "DISABLE_ESLINT_PLUGIN=true refine build",
+    "build": "DISABLE_ESLINT_PLUGIN=true react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "refine": "refine"
