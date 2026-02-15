@@ -7,7 +7,6 @@ import {
   CssBaseline,
   GlobalStyles,
   ReadyPage,
-  ErrorComponent,
 } from "@pankod/refine-mui";
 import {
   Folder,
@@ -24,6 +23,7 @@ import routerProvider from "@pankod/refine-react-router-v6";
 import axios, { AxiosRequestConfig } from "axios";
 import { PCTLayout } from "components/layout/PCTLayout";
 import { Header } from "components/layout/header";
+import { CustomError } from "components/common/CustomError";
 import { ColorModeContextProvider } from "contexts";
 import { PaneContextProvider } from "contexts/PaneContext";
 import { CredentialResponse } from "interfaces/google";
@@ -176,7 +176,7 @@ function App() {
           dataProvider={dataProvider(API_URL)}
           notificationProvider={notificationProvider}
           ReadyPage={ReadyPage}
-          catchAll={<ErrorComponent />}
+          catchAll={<CustomError />}
           resources={[
             {
               name: "project",
