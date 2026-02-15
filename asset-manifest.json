@@ -1,18 +1,18 @@
 {
   "files": {
     "main.css": "/pct-dashboard/static/css/main.df0bd558.css",
-    "main.js": "/pct-dashboard/static/js/main.d4609305.js",
+    "main.js": "/pct-dashboard/static/js/main.01e8b259.js",
     "static/js/787.44e022fc.chunk.js": "/pct-dashboard/static/js/787.44e022fc.chunk.js",
     "static/media/yariga.svg": "/pct-dashboard/static/media/yariga.50e838bc0f04e94c4effa140d3467b5f.svg",
     "static/media/logo.svg": "/pct-dashboard/static/media/logo.95126c95fc6d9f14ec17c1b28ee86541.svg",
     "index.html": "/pct-dashboard/index.html",
     "static/media/gsk-logo.svg": "/pct-dashboard/static/media/gsk-logo.c2837a7b3e3fe4d1544470b2227ecf15.svg",
     "main.df0bd558.css.map": "/pct-dashboard/static/css/main.df0bd558.css.map",
-    "main.d4609305.js.map": "/pct-dashboard/static/js/main.d4609305.js.map",
+    "main.01e8b259.js.map": "/pct-dashboard/static/js/main.01e8b259.js.map",
     "787.44e022fc.chunk.js.map": "/pct-dashboard/static/js/787.44e022fc.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.df0bd558.css",
-    "static/js/main.d4609305.js"
+    "static/js/main.01e8b259.js"
   ]
 }
