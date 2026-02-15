@@ -26,6 +26,7 @@ jobs:
           npm run build
         env:
           REACT_APP_API_URL: https://pct-dashboard.onrender.com/api/v1
+          REACT_APP_GOOGLE_CLIENT_ID: 794527303566-gvitfaq8dprefl2plvsubf5mhbnulpse.apps.googleusercontent.com
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
