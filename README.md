@@ -29,6 +29,16 @@
 
 ---
 
+## Documentation
+
+📖 **[ARCHITECTURE.md](ARCHITECTURE.md)** – Complete technical documentation: tech stack, data flow, authentication, API, deployment architecture, and how everything connects
+
+📝 **[SETUP.md](SETUP.md)** – Local development setup guide
+
+🚀 **[DEPLOY_AND_SHARE.md](DEPLOY_AND_SHARE.md)** – Deployment and sharing instructions
+
+---
+
 ## Quick Start
 
 ```bash
@@ -38,8 +48,6 @@ cd server && npm install && npm start
 # Frontend (new terminal)
 cd client && npm install && npm run dev
 ```
-
-See [SETUP.md](SETUP.md) for full setup. See [DEPLOY_AND_SHARE.md](DEPLOY_AND_SHARE.md) for deployment and sharing instructions.
 
 ---
 
