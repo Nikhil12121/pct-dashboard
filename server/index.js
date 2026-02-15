@@ -15,7 +15,10 @@ const allowedOrigins = [
 ];
 app.use(cors({
   origin: (origin, callback) => {
-    const allowed = !origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app');
+    const allowed = !origin ||
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      origin.endsWith('.github.io');
     callback(null, allowed);
   },
   credentials: true,
