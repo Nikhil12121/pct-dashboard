@@ -21,6 +21,7 @@ import {
 
 import dataProvider from "@pankod/refine-simple-rest";
 import routerProvider from "@pankod/refine-react-router-v6";
+import { BrowserRouter } from "react-router-dom";
 import axios, { AxiosRequestConfig } from "axios";
 import { PCTLayout } from "components/layout/PCTLayout";
 import { Header } from "components/layout/header";
@@ -167,17 +168,18 @@ function App() {
   };
 
   return (
-    <ColorModeContextProvider>
-      <PaneContextProvider>
-        <CssBaseline />
-        <GlobalStyles styles={{ html: { WebkitFontSmoothing: "auto" } }} />
-        <RefineSnackbarProvider>
-        <Refine
-          dataProvider={dataProvider(API_URL)}
-          notificationProvider={notificationProvider}
-          ReadyPage={ReadyPage}
-          catchAll={<ErrorComponent />}
-          resources={[
+    <BrowserRouter basename={process.env.PUBLIC_URL || ""}>
+      <ColorModeContextProvider>
+        <PaneContextProvider>
+          <CssBaseline />
+          <GlobalStyles styles={{ html: { WebkitFontSmoothing: "auto" } }} />
+          <RefineSnackbarProvider>
+          <Refine
+            dataProvider={dataProvider(API_URL)}
+            notificationProvider={notificationProvider}
+            ReadyPage={ReadyPage}
+            catchAll={<ErrorComponent />}
+            resources={[
             {
               name: "project",
               list: Project,
@@ -227,10 +229,11 @@ function App() {
           authProvider={authProvider}
           LoginPage={Login}
           DashboardPage={Home}
-        />
-      </RefineSnackbarProvider>
-      </PaneContextProvider>
-    </ColorModeContextProvider>
+          />
+        </RefineSnackbarProvider>
+        </PaneContextProvider>
+      </ColorModeContextProvider>
+    </BrowserRouter>
   );
 }
 
