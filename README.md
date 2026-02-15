@@ -39,7 +39,7 @@ cd server && npm install && npm start
 cd client && npm install && npm run dev
 ```
 
-See [SETUP.md](SETUP.md) for full setup. See [DEPLOYMENT.md](DEPLOYMENT.md) for deployment to Vercel/Render.
+See [SETUP.md](SETUP.md) for full setup. See [DEPLOY_AND_SHARE.md](DEPLOY_AND_SHARE.md) for deployment and sharing instructions.
 
 ---
 

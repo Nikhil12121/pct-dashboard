@@ -2,6 +2,7 @@
   "name": "client",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://nikhil12121.github.io/pct-dashboard",
   "dependencies": {
     "@mui/icons-material": "^5.8.3",
     "@pankod/refine-cli": "^1.2.0",

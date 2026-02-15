@@ -9,7 +9,17 @@ import propertyRouter from './routes/property.routes.js';
 dotenv.config();
 
 const app = express();
-app.use(cors());
+const allowedOrigins = [
+  'https://pct-dashboard-xi.vercel.app',
+  'http://localhost:3000',
+];
+app.use(cors({
+  origin: (origin, callback) => {
+    const allowed = !origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app');
+    callback(null, allowed);
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: '50mb' }));
 
 app.get('/', (req, res) => {

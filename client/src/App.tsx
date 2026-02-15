@@ -63,31 +63,40 @@ function App() {
       const { credential, demo } = params;
 
       if (demo) {
-        const response = await fetch(`${API_URL}/users`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: 'Nikhil',
-            email: 'nikhil@example.com',
-            avatar: 'https://avatars.githubusercontent.com/u/1?v=4',
-          })
-        });
-        const data = await response.json();
-        if (response.status === 200) {
-          localStorage.setItem(
-            "user",
-            JSON.stringify({
+        try {
+          const response = await fetch(`${API_URL}/users`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
               name: 'Nikhil',
               email: 'nikhil@example.com',
-              picture: 'https://avatars.githubusercontent.com/u/1?v=4',
               avatar: 'https://avatars.githubusercontent.com/u/1?v=4',
-              userid: data._id
             })
-          );
-          localStorage.setItem("token", "demo-token");
-          return Promise.resolve();
+          });
+          const data = await response.json();
+          if (response.status === 200) {
+            localStorage.setItem(
+              "user",
+              JSON.stringify({
+                name: 'Nikhil',
+                email: 'nikhil@example.com',
+                picture: 'https://avatars.githubusercontent.com/u/1?v=4',
+                avatar: 'https://avatars.githubusercontent.com/u/1?v=4',
+                userid: data._id
+              })
+            );
+            localStorage.setItem("token", "demo-token");
+            return Promise.resolve();
+          }
+          return Promise.reject(new Error(data?.message || `Backend error: ${response.status}`));
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          return Promise.reject(new Error(
+            msg.includes('fetch') || msg.includes('Failed to fetch')
+              ? 'Cannot reach backend. Check REACT_APP_API_URL in Vercel.'
+              : msg
+          ));
         }
-        return Promise.reject();
       }
 
       const profileObj = credential ? parseJwt(credential) : null;
