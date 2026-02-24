@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  api-generator:
+    build: .
+    container_name: be-api-generator
+    ports:
+      - "8000:8000"
+    environment:
+      - THOUGHTSPOT_HOST=${THOUGHTSPOT_HOST}
+      - THOUGHTSPOT_USERNAME=${THOUGHTSPOT_USERNAME}
+      - THOUGHTSPOT_PASSWORD=${THOUGHTSPOT_PASSWORD}
+      - THOUGHTSPOT_INCIDENTS_ANSWER_ID=${THOUGHTSPOT_INCIDENTS_ANSWER_ID}
+    env_file:
+      - .env
+    restart: unless-stopped
+    volumes:
+      - ./:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
