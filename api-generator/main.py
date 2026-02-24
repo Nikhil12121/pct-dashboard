@@ -11,6 +11,7 @@ import os
 from dotenv import load_dotenv
 
 from services.thoughtspot_service import ThoughtspotService
+from mock_data import get_mock_saved_answers, get_mock_saved_answer_data, get_mock_incidents, get_mock_sql_result
 
 # Load environment variables
 load_dotenv()
@@ -36,12 +37,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Thoughtspot service
-thoughtspot_service = ThoughtspotService(
-    host=os.getenv("THOUGHTSPOT_HOST"),
-    username=os.getenv("THOUGHTSPOT_USERNAME"),
-    password=os.getenv("THOUGHTSPOT_PASSWORD"),
-)
+# POC Mode: Use mock data (no Thoughtspot needed)
+POC_MODE = os.getenv("POC_MODE", "true").lower() == "true"
+
+# Initialize Thoughtspot service (only if not in POC mode)
+if not POC_MODE:
+    thoughtspot_service = ThoughtspotService(
+        host=os.getenv("THOUGHTSPOT_HOST"),
+        username=os.getenv("THOUGHTSPOT_USERNAME"),
+        password=os.getenv("THOUGHTSPOT_PASSWORD"),
+    )
+else:
+    thoughtspot_service = None
+    print("🧪 Running in POC mode with mock data (no Thoughtspot required)")
 
 
 # ==================== Response Models ====================
@@ -87,6 +95,13 @@ async def health_check():
     Health check endpoint
     Returns API status and Thoughtspot connection status
     """
+    if POC_MODE:
+        return HealthResponse(
+            status="healthy",
+            service="BE API Generator (POC Mode)",
+            thoughtspot_connected=False
+        )
+    
     ts_connected = await thoughtspot_service.check_connection()
     
     return HealthResponse(
@@ -105,11 +120,17 @@ async def get_saved_answers():
         List of saved answer IDs and names
     """
     try:
-        answers = await thoughtspot_service.get_saved_answers()
+        # Use mock data in POC mode
+        if POC_MODE:
+            answers = get_mock_saved_answers()
+        else:
+            answers = await thoughtspot_service.get_saved_answers()
+        
         return {
             "status": "success",
             "data": answers,
-            "count": len(answers)
+            "count": len(answers),
+            "mode": "POC (mock data)" if POC_MODE else "Production"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch saved answers: {str(e)}")
@@ -127,7 +148,11 @@ async def get_saved_answer_data(answer_id: str):
         Data from the saved answer with columns and rows
     """
     try:
-        data = await thoughtspot_service.fetch_saved_answer_data(answer_id)
+        # Use mock data in POC mode
+        if POC_MODE:
+            data = get_mock_saved_answer_data(answer_id)
+        else:
+            data = await thoughtspot_service.fetch_saved_answer_data(answer_id)
         
         return SavedAnswerResponse(
             answer_id=answer_id,
@@ -156,13 +181,19 @@ async def execute_sql_query(
         Query results
     """
     try:
-        result = await thoughtspot_service.execute_sql(query, answer_id)
+        # Use mock data in POC mode
+        if POC_MODE:
+            result = get_mock_sql_result(query)
+        else:
+            result = await thoughtspot_service.execute_sql(query, answer_id)
+        
         return {
             "status": "success",
             "query": query,
             "data": result.get("rows", []),
             "columns": result.get("columns", []),
-            "row_count": len(result.get("rows", []))
+            "row_count": len(result.get("rows", [])),
+            "mode": "POC (mock data)" if POC_MODE else "Production"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"SQL execution failed: {str(e)}")
@@ -185,7 +216,12 @@ async def get_incidents(
         List of incidents
     """
     try:
-        incidents = await thoughtspot_service.get_incidents(status, severity)
+        # Use mock data in POC mode
+        if POC_MODE:
+            incidents = get_mock_incidents(status, severity)
+        else:
+            incidents = await thoughtspot_service.get_incidents(status, severity)
+        
         return {
             "status": "success",
             "data": incidents,
@@ -193,7 +229,8 @@ async def get_incidents(
             "filters": {
                 "status": status,
                 "severity": severity
-            }
+            },
+            "mode": "POC (mock data)" if POC_MODE else "Production"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch incidents: {str(e)}")
@@ -211,13 +248,20 @@ async def get_incident_details(incident_id: str):
         Incident details
     """
     try:
-        incident = await thoughtspot_service.get_incident_by_id(incident_id)
+        # Use mock data in POC mode
+        if POC_MODE:
+            all_incidents = get_mock_incidents()
+            incident = next((i for i in all_incidents if i["incident_id"] == incident_id), None)
+        else:
+            incident = await thoughtspot_service.get_incident_by_id(incident_id)
+        
         if not incident:
             raise HTTPException(status_code=404, detail="Incident not found")
         
         return {
             "status": "success",
-            "data": incident
+            "data": incident,
+            "mode": "POC (mock data)" if POC_MODE else "Production"
         }
     except HTTPException:
         raise
@@ -234,15 +278,24 @@ async def get_api_status():
     - Available endpoints
     - Request statistics
     """
-    ts_status = await thoughtspot_service.check_connection()
+    if POC_MODE:
+        ts_status = False
+        mode = "POC (using mock data)"
+    else:
+        ts_status = await thoughtspot_service.check_connection()
+        mode = "Production (Thoughtspot connected)"
     
     return {
         "api_status": "running",
-        "thoughtspot_status": "connected" if ts_status else "disconnected",
+        "mode": mode,
+        "thoughtspot_status": "connected" if ts_status else "disconnected (using mock data)" if POC_MODE else "disconnected",
         "endpoints": {
             "saved_answers": "/api/v1/saved-answers",
             "sql_endpoint": "/api/v1/sql-endpoint",
             "incidents": "/api/v1/incidents",
+            "incident_details": "/api/v1/incidents/{id}",
+            "health": "/health",
+            "docs": "/docs"
         },
         "version": "1.0.0"
     }
@@ -274,21 +327,28 @@ async def general_exception_handler(request, exc):
 async def startup_event():
     """Initialize connections on startup"""
     print("🚀 BE API Generator starting...")
-    print(f"📊 Thoughtspot Host: {os.getenv('THOUGHTSPOT_HOST', 'Not configured')}")
     
-    # Test Thoughtspot connection
-    connected = await thoughtspot_service.check_connection()
-    if connected:
-        print("✅ Thoughtspot connected successfully")
+    if POC_MODE:
+        print("🧪 POC MODE ENABLED - Using mock data (no Thoughtspot required)")
+        print("📊 Mock incidents: 8 sample incidents available")
+        print("📊 Mock saved answers: 4 sample answers available")
+        print("✅ Ready to test with frontend!")
     else:
-        print("⚠️  Thoughtspot connection failed - check credentials")
+        print(f"📊 Thoughtspot Host: {os.getenv('THOUGHTSPOT_HOST', 'Not configured')}")
+        # Test Thoughtspot connection
+        connected = await thoughtspot_service.check_connection()
+        if connected:
+            print("✅ Thoughtspot connected successfully")
+        else:
+            print("⚠️  Thoughtspot connection failed - check credentials")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
     print("👋 BE API Generator shutting down...")
-    await thoughtspot_service.close()
+    if not POC_MODE and thoughtspot_service:
+        await thoughtspot_service.close()
 
 
 if __name__ == "__main__":
