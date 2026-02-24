@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: be-api-generator
+    runtime: python
+    region: oregon
+    plan: free
+    branch: feature/be-api-generator
+    rootDir: api-generator
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: POC_MODE
+        value: true
+      - key: THOUGHTSPOT_HOST
+        value: https://your-instance.thoughtspot.cloud
+      - key: THOUGHTSPOT_USERNAME
+        value: not_needed_for_poc
+      - key: THOUGHTSPOT_PASSWORD
+        value: not_needed_for_poc
