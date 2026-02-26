@@ -22,6 +22,7 @@ from mock_data import (
     get_api_mapper_schema,
     generate_api_sql_artifacts,
 )
+from sql_parser import parse_thoughtspot_answer
 
 # Load environment variables
 load_dotenv()
@@ -114,6 +115,28 @@ async def generate_api_mapper(generate_req: GenerateRequest):
     """
     try:
         result = generate_api_sql_artifacts(generate_req.answer_id, generate_req.mapper_rows)
+        return {"status": "success", **result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class ThoughtspotAnswerPayload(BaseModel):
+    """Thoughtspot Saved Answer format: metadata_id, metadata_name, sql_queries[].sql_query"""
+    metadata_id: Optional[str] = None
+    metadata_name: Optional[str] = None
+    metadata_type: Optional[str] = None
+    sql_queries: List[Dict[str, Any]] = []
+
+
+@app.post("/api/v1/api-mapper/parse-answer", tags=["API Mapper"])
+async def parse_answer_endpoint(payload: ThoughtspotAnswerPayload):
+    """
+    Accept a Thoughtspot Saved Answer (with sql_queries[].sql_query), parse the SQL,
+    and return API Mapper schema: SELECT columns and WHERE parameters.
+    Use this when you have the real TS answer JSON (e.g. IPE Forecast Summary).
+    """
+    try:
+        result = parse_thoughtspot_answer(payload.model_dump())
         return {"status": "success", **result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

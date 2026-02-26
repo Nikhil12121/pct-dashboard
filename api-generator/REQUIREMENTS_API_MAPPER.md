@@ -1,89 +1,91 @@
 # API Mapper & SQL Generator – Requirements
 
-> Based on manager mockups and description. Voice memo could not be processed; requirements are from screenshots and written brief.
+> Based on manager mockups, voice memo transcript, and real Thoughtspot Saved Answer format.
 
 ---
 
-## 1. Screen 1: Source + API Mapper + Generate
+## Thoughtspot Saved Answer Format (Real)
 
-### 1.1 Source tab
-- **Left panel** with tabs: **Source** | **Swagger**.
-- **Source** tab shows list of **TS Answers** (e.g. TS Answer1, TS Answer2).
-- Each TS Answer = one SQL query behind it (Thoughtspot Saved Answer).
-- **On click** on a TS Answer:
-  - Backend fetches that answer’s data/schema.
-  - **API Mapper** table is filled with rows (one per field), so user can configure parameters.
+Example from production:
 
-### 1.2 API Mapper table (Define)
-- Columns:
-  - **Clause** – e.g. Select, Where.
-  - **Field** – field/database column name.
-  - **Data Type** – (optional in mock).
-  - **Default Value List** – (optional).
-  - **Response Field Name** – name in API response.
-  - **Is required in Response** – Y / N.
-  - **User Input Required** – Y / N / NA.
-- Rows come from the selected TS Answer (e.g. Date Key, Plan Key in Select; project_key, date_key in Where).
-- User can edit: Response Field Name, Is required in Response, User Input Required (and optionally others).
+```json
+{
+  "metadata_id": "da0110cd-9e00-4bb1-8f17-e936c6838b35",
+  "metadata_name": "IPE Forecast Summary",
+  "metadata_type": "ANSWER",
+  "sql_queries": [{
+    "metadata_id": "da0110cd-9e00-4bb1-8f17-e936c6838b35",
+    "metadata_name": "IPE Forecast Summary",
+    "sql_query": "SELECT \"ta_1\".\"clinical_study_key\" \"ca_1\", \"ta_2\".\"Plan State\" \"ca_2\", ... FROM ... WHERE ( \"ta_3\".\"Year\" >= 2021 AND ... ) GROUP BY ..."
+  }]
+}
+```
 
-### 1.3 Generate
-- **Generate** button below the API Mapper table.
-- On click:
-  - Send current API Mapper configuration to backend.
-  - Backend returns:
-    - **SQL View**
-    - **Sample Data**
-    - **API SQL Code Template**
-- These appear in **output tabs** (or sections) below: **SQL View** | **Sample Data** | **API SQL Code Template**.
-
-### 1.4 Swagger tab
-- Placeholder for Swagger/OpenAPI view (e.g. link to `/docs` or embedded spec). No specific behaviour required in first version beyond navigation.
+- **One SQL per answer**: Each saved answer has one (or more) `sql_query` behind it.
+- **Parse the SQL**: Backend parses `sql_query` to get SELECT columns and WHERE conditions, then populates the API Mapper (no need to run DESCRIBE in POC if we parse).
 
 ---
 
-## 2. Screen 2: Property & Description (Define)
+## Flow (from voice memo)
 
-- **Same table UI** as elsewhere: table with columns.
-- Columns: **Property** | **Description** | **Value** | **Notes**.
-- Rows (properties) include:
-  - **Method** – e.g. GET | PUT | PATCH.
-  - **Version**
-  - **API Name**
-  - **Full API Call**
-  - **Description**
-  - **Swagger Update** – e.g. Y/N.
-  - **Response JSON Schema**
-  - **Response JSON Sample**
-  - **Sample Data**
-  - **API SQL Code Template**
-- Values and descriptions can be filled by user or by system (e.g. from Generate output).
-- Same table layout and styling as Screen 1 for consistency.
+1. **Source**
+   - Show list of TS Answers (from Thoughtspot or mock).
+   - User clicks one → load that answer (including its SQL).
+   - “I take the SQL, and create an interface… I have a list of all the answers that I'm pulling. And I select this, and then I see the SQL below, and I'll get like a mapping, visual, API mapper.”
 
----
+2. **API Mapper**
+   - Table: **Clause**, **Field**, **Data Type**, **Default Value List**, **Response Field Name**, **Is required in Response**, **User Input Required**.
+   - **SELECT clause**: Parsed from SQL (or from DESCRIBE). Each row = one column. “Is required in response” = Y/N. “User input required” = NA (only SELECT goes in response).
+   - **WHERE clause**: Parsed from SQL. Each row = one condition/parameter. “User input required” = Y → that field becomes an **API parameter** (e.g. frontend passes `project_key`, `date_key`). “Is required in response” = NA for WHERE.
+   - Response Field Name = name in JSON response (can override). Default value list can be used for WHERE (can ignore initially).
 
-## 3. Flow summary
+3. **Generate**
+   - Button: “Generate”.
+   - Outputs:
+     - **SQL View** – the SQL (or a view definition) that will be run.
+     - **Sample Data** – e.g. first 50 records so we know “this is the SQL and this is what we get”.
+     - **API SQL Code Template** – parameterized template: when API is called with params (e.g. `project_key=X`), backend runs this SQL and returns JSON. “This goes, creates this one… this generate will go create this one.”
 
-1. User selects a **TS Answer** in Source → API Mapper table is populated from that answer’s schema.
-2. User sets **Response Field Name**, **Is required in Response**, **User Input Required** (and any other editable columns).
-3. User clicks **Generate** → backend returns **SQL View**, **Sample Data**, **API SQL Code Template**.
-4. User can open **Screen 2** and see/edit **Property & Description** in the same table UI (Method, Version, API Name, Full API Call, etc.).
+4. **Define (second screen)**
+   - Same table UI: **Property**, **Description**, **Value**, **Notes**.
+   - Rows: Method (GET/PUT/PATCH – usually GET), Version, API Name, Full API Call, Description, Swagger Update (Y), Response JSON Schema, Response JSON Sample, Sample Data, API SQL Code Template.
+   - “Once mapping is done, we'll go for refine… define. In define we'll define things like method, version, API name, value, notes.”
 
----
+5. **Publish / Swagger**
+   - After Define, user can deploy/publish to a server and update Swagger so the API is visible and callable from any frontend. (POC can stub this.)
 
-## 4. Out of scope for first version
-
-- Real Thoughtspot connection (use mock TS Answers and mock schema).
-- Real SQL execution (mock SQL View and Sample Data).
-- Persistence of API Mapper or Property definitions (in-memory / session only unless specified later).
-- Authentication (open UI for POC).
+6. **No deployment required for POC**
+   - “We don't need to deploy it, even if I can run this on my terminal.” So run locally or in Docker is enough.
 
 ---
 
-## 5. Corrections
+## Backend Behaviour
 
-If the voice memo specified different:
-- field names,
-- extra columns,
-- or different screens,
+- **List answers**: Existing `GET /api/v1/saved-answers` (or equivalent for real TS).
+- **Parse TS answer and get API Mapper schema**:
+  - **New**: `POST /api/v1/api-mapper/parse-answer`  
+    Body: Thoughtspot answer JSON (`metadata_id`, `metadata_name`, `sql_queries` with `sql_query`).  
+    Response: `schema` (API Mapper rows), plus `select_columns`, `where_params`, and optionally truncated `sql_query`.
+- **Generate**: Existing `POST /api/v1/api-mapper/generate` with `answer_id` and `mapper_rows` → returns SQL view, sample data, API SQL code template.
+- **Schema by ID (mock)**: Existing `GET /api/v1/api-mapper/schema/{answer_id}` for predefined answers; can stay for demos.
 
-this document can be updated and the UI/backend adjusted accordingly.
+---
+
+## UI Behaviour
+
+- **Screen 1**
+  - Source: list of TS Answers; on click load SQL (and optionally show “SQL below”).
+  - When TS answer is loaded (by ID or by posting full payload), call parse-answer or schema endpoint and **populate API Mapper table** from `schema`.
+  - User edits Response Field Name, Is required in Response, User Input Required.
+  - Generate → call generate endpoint → show SQL View, Sample Data, API SQL Code Template in the three output tabs.
+- **Screen 2**
+  - Define: same table UI (Property, Description, Value, Notes) with Method, Version, API Name, Full API Call, Description, Swagger Update, Response JSON Schema, Response JSON Sample, Sample Data, API SQL Code Template. Values can be filled from Generate output.
+
+---
+
+## Summary
+
+- **One TS Saved Answer** = one SQL (in `sql_queries[].sql_query`).
+- **Click TS Answer** → backend parses that SQL → **API Mapper** is filled with Select (response columns) and Where (API parameters).
+- User sets **response names** and **user input required** (Y = API param), then **Generate** → **SQL View**, **Sample Data**, **API SQL Code Template**.
+- **Define** screen = same table UI for API properties; optional **Publish** to update Swagger. POC can run locally (no deploy required).
