@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Mapper & SQL Generator</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 16px; background: #f5f5f5; }
+    .container { max-width: 1400px; margin: 0 auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; }
+    .tabs { display: flex; border-bottom: 1px solid #e0e0e0; background: #fafafa; }
+    .tabs button { padding: 12px 20px; border: none; background: none; cursor: pointer; font-size: 14px; color: #666; }
+    .tabs button.active { background: #fff; color: #1976d2; font-weight: 600; border-bottom: 2px solid #1976d2; margin-bottom: -1px; }
+    .tabs button:hover:not(.active) { background: #eee; }
+    .panel { display: none; padding: 20px; }
+    .panel.active { display: block; }
+    .layout { display: grid; grid-template-columns: 240px 1fr; gap: 20px; min-height: 400px; }
+    .source-list { list-style: none; margin: 0; padding: 0; }
+    .source-list li { padding: 10px 12px; cursor: pointer; border-radius: 6px; margin-bottom: 4px; font-size: 13px; }
+    .source-list li:hover { background: #e3f2fd; }
+    .source-list li.selected { background: #1976d2; color: #fff; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border: 1px solid #e0e0e0; padding: 8px 10px; text-align: left; }
+    th { background: #f5f5f5; font-weight: 600; }
+    tr:hover { background: #fafafa; }
+    input, select { width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
+    select { cursor: pointer; }
+    .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; }
+    .btn-primary { background: #1976d2; color: #fff; }
+    .btn-primary:hover { background: #1565c0; }
+    .btn-secondary { background: #e0e0e0; color: #333; margin-left: 8px; }
+    .btn-secondary:hover { background: #d0d0d0; }
+    .output-tabs { margin-top: 16px; }
+    .output-tabs .tabs { margin-bottom: 0; }
+    .output-content { padding: 16px; background: #fafafa; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 8px 8px; min-height: 120px; font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+    .screen-nav { margin-bottom: 16px; display: flex; gap: 8px; }
+    .screen-nav .btn { flex: none; }
+    h2 { margin: 0 0 16px 0; font-size: 18px; color: #333; }
+    .subtitle { color: #666; font-size: 13px; margin-bottom: 12px; }
+    .prop-table th { min-width: 140px; }
+    .prop-table td { vertical-align: top; }
+    .prop-table textarea { width: 100%; min-height: 60px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-family: inherit; resize: vertical; }
+    #apiBaseUrl { font-size: 11px; color: #666; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="screen-nav">
+      <button type="button" class="btn btn-primary" data-screen="1">Screen 1: Source & API Mapper</button>
+      <button type="button" class="btn btn-secondary" data-screen="2">Screen 2: Property & Description</button>
+    </div>
+
+    <div id="screen1" class="panel active">
+      <h2>API Mapper & SQL Generator</h2>
+      <p class="subtitle">Select a TS Answer to load schema, then configure and generate SQL View, Sample Data, and API SQL Code Template.</p>
+      <p id="apiBaseUrl"></p>
+
+      <div class="layout">
+        <div>
+          <div class="tabs">
+            <button type="button" class="tab active" data-tab="source">Source</button>
+            <button type="button" class="tab" data-tab="swagger">Swagger</button>
+          </div>
+          <div class="panel active" id="source-panel">
+            <ul class="source-list" id="sourceList"></ul>
+          </div>
+          <div class="panel" id="swagger-panel">
+            <p class="subtitle">Open API docs: <a href="/docs" target="_blank">/docs</a></p>
+          </div>
+        </div>
+        <div>
+          <div class="tabs">
+            <button type="button" class="tab active" data-tab="mapper">API Mapper</button>
+            <button type="button" class="tab" data-tab="define">Define</button>
+          </div>
+          <div class="panel active" id="mapper-panel">
+            <div class="table-wrap">
+              <table id="mapperTable">
+                <thead>
+                  <tr>
+                    <th>Clause</th>
+                    <th>Field</th>
+                    <th>Data Type</th>
+                    <th>Default Value List</th>
+                    <th>Response Field Name</th>
+                    <th>Is required in Response</th>
+                    <th>User Input Required</th>
+                  </tr>
+                </thead>
+                <tbody id="mapperBody"></tbody>
+              </table>
+            </div>
+            <div style="margin-top: 16px;">
+              <button type="button" class="btn btn-primary" id="btnGenerate">Generate</button>
+            </div>
+            <div class="output-tabs">
+              <div class="tabs">
+                <button type="button" class="output-tab active" data-output="sqlview">SQL View</button>
+                <button type="button" class="output-tab" data-output="sampledata">Sample Data</button>
+                <button type="button" class="output-tab" data-output="apisql">API SQL Code Template</button>
+              </div>
+              <div id="outputSqlView" class="output-content output-panel active"></div>
+              <div id="outputSampleData" class="output-content output-panel"></div>
+              <div id="outputApiSql" class="output-content output-panel"></div>
+            </div>
+          </div>
+          <div class="panel" id="define-panel">
+            <p class="subtitle">Define tab: use Screen 2 for full Property & Description table.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="screen2" class="panel">
+      <h2>Property & Description</h2>
+      <p class="subtitle">Same table UI for API properties. Fill Value and Notes as needed.</p>
+      <div class="table-wrap">
+        <table class="prop-table" id="propTable">
+          <thead>
+            <tr>
+              <th>Property</th>
+              <th>Description</th>
+              <th>Value</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody id="propBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const API_BASE = window.location.origin;
+      document.getElementById('apiBaseUrl').textContent = 'API base: ' + API_BASE;
+
+      let selectedAnswerId = null;
+      let mapperSchema = [];
+
+      const propRows = [
+        { property: 'Method', description: 'HTTP method', value: 'GET|PUT|PATCH', notes: '' },
+        { property: 'Version', description: 'API version', value: '', notes: '' },
+        { property: 'API Name', description: 'API name', value: '', notes: '' },
+        { property: 'Full API Call', description: 'Full API URL', value: '', notes: '' },
+        { property: 'Description', description: 'API description', value: '', notes: '' },
+        { property: 'Swagger Update', description: 'Update Swagger', value: 'Y', notes: '' },
+        { property: 'Response JSON Schema', description: 'JSON schema', value: '', notes: '' },
+        { property: 'Response JSON Sample', description: 'Sample response', value: '', notes: '' },
+        { property: 'Sample Data', description: 'Sample data', value: '', notes: '' },
+        { property: 'API SQL Code Template', description: 'SQL template', value: '', notes: '' },
+      ];
+
+      function renderPropTable() {
+        const tbody = document.getElementById('propBody');
+        tbody.innerHTML = propRows.map(function(r) {
+          return '<tr><td>' + escapeHtml(r.property) + '</td><td>' + escapeHtml(r.description) + '</td><td><textarea data-prop="' + escapeHtml(r.property) + '" data-col="value">' + escapeHtml(r.value) + '</textarea></td><td><input type="text" data-prop="' + escapeHtml(r.property) + '" data-col="notes" value="' + escapeHtml(r.notes) + '" placeholder="Notes" /></td></tr>';
+        }).join('');
+      }
+
+      function escapeHtml(s) {
+        if (s == null) return '';
+        const div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+      }
+
+      function renderSourceList(answers) {
+        const ul = document.getElementById('sourceList');
+        ul.innerHTML = (answers || []).map(function(a) {
+          const id = a.id || a.answer_id;
+          const name = a.name || 'TS Answer ' + id;
+          const isSelected = selectedAnswerId === id;
+          return '<li class="' + (isSelected ? 'selected' : '') + '" data-answer-id="' + escapeHtml(id) + '">' + escapeHtml(name) + '</li>';
+        }).join('');
+        ul.querySelectorAll('li').forEach(function(li) {
+          li.addEventListener('click', function() {
+            selectedAnswerId = li.getAttribute('data-answer-id');
+            ul.querySelectorAll('li').forEach(function(l) { l.classList.remove('selected'); });
+            li.classList.add('selected');
+            loadSchema(selectedAnswerId);
+          });
+        });
+      }
+
+      function loadSchema(answerId) {
+        fetch(API_BASE + '/api/v1/api-mapper/schema/' + encodeURIComponent(answerId))
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            mapperSchema = data.schema || [];
+            renderMapperTable(mapperSchema);
+          })
+          .catch(function(err) {
+            console.error(err);
+            document.getElementById('mapperBody').innerHTML = '<tr><td colspan="7">Failed to load schema.</td></tr>';
+          });
+      }
+
+      function renderMapperTable(rows) {
+        const tbody = document.getElementById('mapperBody');
+        const opts = { 'Y': 'Y', 'N': 'N', 'NA': 'NA' };
+        tbody.innerHTML = (rows || []).map(function(row, i) {
+          return '<tr data-index="' + i + '">' +
+            '<td>' + escapeHtml(row.clause || '') + '</td>' +
+            '<td>' + escapeHtml(row.field || '') + '</td>' +
+            '<td>' + escapeHtml(row.data_type || '') + '</td>' +
+            '<td><input type="text" value="' + escapeHtml(row.default_value_list || '') + '" data-col="default_value_list" /></td>' +
+            '<td><input type="text" value="' + escapeHtml(row.response_field_name || '') + '" data-col="response_field_name" /></td>' +
+            '<td><select data-col="is_required_in_response">' + Object.keys(opts).map(function(k) { return '<option value="' + k + '"' + (row.is_required_in_response === k ? ' selected' : '') + '>' + k + '</option>'; }).join('') + '</select></td>' +
+            '<td><select data-col="user_input_required">' + Object.keys(opts).map(function(k) { return '<option value="' + k + '"' + (row.user_input_required === k ? ' selected' : '') + '>' + k + '</option>'; }).join('') + '</select></td>' +
+            '</tr>';
+        }).join('');
+      }
+
+      function getMapperRows() {
+        const rows = [];
+        document.querySelectorAll('#mapperBody tr').forEach(function(tr) {
+          const idx = parseInt(tr.getAttribute('data-index'), 10);
+          const base = mapperSchema[idx] || {};
+          const r = {
+            clause: base.clause,
+            field: base.field,
+            data_type: base.data_type,
+            default_value_list: (tr.querySelector('[data-col="default_value_list"]') || {}).value || '',
+            response_field_name: (tr.querySelector('[data-col="response_field_name"]') || {}).value || '',
+            is_required_in_response: (tr.querySelector('[data-col="is_required_in_response"]') || {}).value || 'NA',
+            user_input_required: (tr.querySelector('[data-col="user_input_required"]') || {}).value || 'NA',
+          };
+          rows.push(r);
+        });
+        return rows;
+      }
+
+      document.getElementById('btnGenerate').addEventListener('click', function() {
+        if (!selectedAnswerId) {
+          alert('Select a TS Answer from the Source list first.');
+          return;
+        }
+        const mapperRows = getMapperRows();
+        fetch(API_BASE + '/api/v1/api-mapper/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ answer_id: selectedAnswerId, mapper_rows: mapperRows }),
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            document.getElementById('outputSqlView').textContent = data.sql_view || '';
+            document.getElementById('outputSampleData').textContent = JSON.stringify(data.sample_data || {}, null, 2);
+            document.getElementById('outputApiSql').textContent = data.api_sql_code_template || '';
+            // Update Screen 2 Sample Data and API SQL Template values
+            propRows[8].value = JSON.stringify(data.sample_data || {}, null, 2);
+            propRows[9].value = data.api_sql_code_template || '';
+            renderPropTable();
+          })
+          .catch(function(err) {
+            console.error(err);
+            alert('Generate failed. Check console.');
+          });
+      });
+
+      var outputPanelIds = { sqlview: 'outputSqlView', sampledata: 'outputSampleData', apisql: 'outputApiSql' };
+      document.querySelectorAll('.output-tab').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.output-tab').forEach(function(b) { b.classList.remove('active'); });
+          document.querySelectorAll('.output-panel').forEach(function(p) { p.classList.remove('active'); });
+          btn.classList.add('active');
+          var name = btn.getAttribute('data-output');
+          var panelId = outputPanelIds[name];
+          if (panelId) document.getElementById(panelId).classList.add('active');
+        });
+      });
+
+      document.querySelectorAll('.tab').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          const tab = btn.getAttribute('data-tab');
+          const parent = btn.closest('.layout') || document;
+          parent.querySelectorAll('.tab').forEach(function(b) { b.classList.remove('active'); });
+          parent.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+          btn.classList.add('active');
+          if (tab === 'source') document.getElementById('source-panel').classList.add('active');
+          else if (tab === 'swagger') document.getElementById('swagger-panel').classList.add('active');
+          else if (tab === 'mapper') document.getElementById('mapper-panel').classList.add('active');
+          else if (tab === 'define') document.getElementById('define-panel').classList.add('active');
+        });
+      });
+
+      document.querySelectorAll('.screen-nav .btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          const screen = btn.getAttribute('data-screen');
+          document.getElementById('screen1').classList.toggle('active', screen === '1');
+          document.getElementById('screen2').classList.toggle('active', screen === '2');
+        });
+      });
+
+      fetch(API_BASE + '/api/v1/saved-answers')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          renderSourceList(data.data || []);
+          if ((data.data || []).length > 0 && !selectedAnswerId) {
+            selectedAnswerId = data.data[0].id || data.data[0].answer_id;
+            document.querySelector('#sourceList li') && document.querySelector('#sourceList li').classList.add('selected');
+            loadSchema(selectedAnswerId);
+          }
+        })
+        .catch(function() {
+          renderSourceList([
+            { id: 'answer-001', name: 'TS Answer1 (Monthly Pipeline Health)' },
+            { id: 'answer-002', name: 'TS Answer2 (Clinical Trial Milestones)' },
+            { id: 'answer-003', name: 'TS Answer3 (Budget vs Actuals)' },
+            { id: 'answer-004', name: 'TS Answer4 (Risk Register)' },
+          ]);
+          selectedAnswerId = 'answer-001';
+          loadSchema('answer-001');
+        });
+
+      renderPropTable();
+    })();
+  </script>
+</body>
+</html>

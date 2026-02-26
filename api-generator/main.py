@@ -5,13 +5,23 @@ Connects Thoughtspot Saved Answers to Frontend UI
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
 from services.thoughtspot_service import ThoughtspotService
-from mock_data import get_mock_saved_answers, get_mock_saved_answer_data, get_mock_incidents, get_mock_sql_result
+from mock_data import (
+    get_mock_saved_answers,
+    get_mock_saved_answer_data,
+    get_mock_incidents,
+    get_mock_sql_result,
+    get_api_mapper_schema,
+    generate_api_sql_artifacts,
+)
 
 # Load environment variables
 load_dotenv()
@@ -77,6 +87,38 @@ class IncidentData(BaseModel):
     updated_at: str
 
 
+# ==================== API Mapper Endpoints ====================
+
+class GenerateRequest(BaseModel):
+    answer_id: str
+    mapper_rows: List[Dict[str, Any]]
+
+
+@app.get("/api/v1/api-mapper/schema/{answer_id}", tags=["API Mapper"])
+async def get_api_mapper_schema_endpoint(answer_id: str):
+    """
+    Get API Mapper table schema for a TS Answer.
+    Populates Clause, Field, Data Type, Response Field Name, Is required in Response, User Input Required.
+    """
+    try:
+        rows = get_api_mapper_schema(answer_id)
+        return {"status": "success", "answer_id": answer_id, "schema": rows}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/api-mapper/generate", tags=["API Mapper"])
+async def generate_api_mapper(generate_req: GenerateRequest):
+    """
+    Generate SQL View, Sample Data, and API SQL Code Template from API Mapper configuration.
+    """
+    try:
+        result = generate_api_sql_artifacts(generate_req.answer_id, generate_req.mapper_rows)
+        return {"status": "success", **result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ==================== API Endpoints ====================
 
 @app.get("/", tags=["Root"])
@@ -85,7 +127,8 @@ async def root():
     return {
         "message": "BE API Generator - Running",
         "status": "healthy",
-        "docs": "/docs"
+        "docs": "/docs",
+        "api_mapper_ui": "/ui"
     }
 
 
@@ -319,6 +362,21 @@ async def general_exception_handler(request, exc):
         "message": "Internal server error",
         "detail": str(exc)
     }
+
+
+# ==================== API Mapper UI (Static) ====================
+
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+    @app.get("/ui", include_in_schema=False)
+    async def api_mapper_ui():
+        return FileResponse(STATIC_DIR / "index.html")
+else:
+    @app.get("/ui", include_in_schema=False)
+    async def api_mapper_ui():
+        return {"message": "API Mapper UI not found. Run from api-generator with static/ folder."}
 
 
 # ==================== Startup/Shutdown ====================

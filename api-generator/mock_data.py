@@ -214,3 +214,102 @@ def get_mock_sql_result(query: str) -> Dict[str, Any]:
             {"incident_id": "INC-002", "title": "Budget Overrun", "status": "in-progress", "severity": "critical", "project": "MRTX-002"},
         ]
     }
+
+
+# ==================== API Mapper (TS Answer → Schema → Generate) ====================
+
+def get_api_mapper_schema(answer_id: str) -> List[Dict[str, Any]]:
+    """
+    Returns API Mapper table rows for a TS Answer.
+    Each row: Clause, Field, Data Type, Default Value List, Response Field Name,
+    Is required in Response, User Input Required.
+    """
+    # Predefined schema per answer (Select vs Where, field names, types)
+    schemas = {
+        "answer-001": [
+            {"clause": "Select", "field": "Date Key", "data_type": "date", "default_value_list": "", "response_field_name": "DateID", "is_required_in_response": "Y", "user_input_required": "NA"},
+            {"clause": "Select", "field": "Plan Key", "data_type": "string", "default_value_list": "", "response_field_name": "", "is_required_in_response": "N", "user_input_required": "NA"},
+            {"clause": "Select", "field": "Month", "data_type": "string", "default_value_list": "", "response_field_name": "Month", "is_required_in_response": "Y", "user_input_required": "NA"},
+            {"clause": "Select", "field": "Project", "data_type": "string", "default_value_list": "", "response_field_name": "Project", "is_required_in_response": "Y", "user_input_required": "NA"},
+            {"clause": "Select", "field": "Status", "data_type": "string", "default_value_list": "", "response_field_name": "Status", "is_required_in_response": "N", "user_input_required": "NA"},
+            {"clause": "Select", "field": "Health_Score", "data_type": "number", "default_value_list": "", "response_field_name": "HealthScore", "is_required_in_response": "Y", "user_input_required": "NA"},
+            {"clause": "Where", "field": "project_key", "data_type": "string", "default_value_list": "", "response_field_name": "", "is_required_in_response": "NA", "user_input_required": "Y"},
+            {"clause": "Where", "field": "date_key", "data_type": "date", "default_value_list": "", "response_field_name": "", "is_required_in_response": "NA", "user_input_required": "N"},
+        ],
+        "answer-002": [
+            {"clause": "Select", "field": "Trial_ID", "data_type": "string", "default_value_list": "", "response_field_name": "TrialID", "is_required_in_response": "Y", "user_input_required": "NA"},
+            {"clause": "Select", "field": "Milestone", "data_type": "string", "default_value_list": "", "response_field_name": "Milestone", "is_required_in_response": "Y", "user_input_required": "NA"},
+            {"clause": "Select", "field": "Planned_Date", "data_type": "date", "default_value_list": "", "response_field_name": "PlannedDate", "is_required_in_response": "N", "user_input_required": "NA"},
+            {"clause": "Select", "field": "Actual_Date", "data_type": "date", "default_value_list": "", "response_field_name": "ActualDate", "is_required_in_response": "N", "user_input_required": "NA"},
+            {"clause": "Select", "field": "Status", "data_type": "string", "default_value_list": "", "response_field_name": "Status", "is_required_in_response": "Y", "user_input_required": "NA"},
+            {"clause": "Where", "field": "trial_id", "data_type": "string", "default_value_list": "", "response_field_name": "", "is_required_in_response": "NA", "user_input_required": "Y"},
+        ],
+        "answer-003": [
+            {"clause": "Select", "field": "Project", "data_type": "string", "default_value_list": "", "response_field_name": "Project", "is_required_in_response": "Y", "user_input_required": "NA"},
+            {"clause": "Select", "field": "Budget", "data_type": "number", "default_value_list": "", "response_field_name": "Budget", "is_required_in_response": "Y", "user_input_required": "NA"},
+            {"clause": "Select", "field": "Actual_Spend", "data_type": "number", "default_value_list": "", "response_field_name": "ActualSpend", "is_required_in_response": "Y", "user_input_required": "NA"},
+            {"clause": "Select", "field": "Variance", "data_type": "number", "default_value_list": "", "response_field_name": "Variance", "is_required_in_response": "N", "user_input_required": "NA"},
+            {"clause": "Where", "field": "project_key", "data_type": "string", "default_value_list": "", "response_field_name": "", "is_required_in_response": "NA", "user_input_required": "Y"},
+        ],
+        "answer-004": [
+            {"clause": "Select", "field": "Risk_ID", "data_type": "string", "default_value_list": "", "response_field_name": "RiskID", "is_required_in_response": "Y", "user_input_required": "NA"},
+            {"clause": "Select", "field": "Project", "data_type": "string", "default_value_list": "", "response_field_name": "Project", "is_required_in_response": "Y", "user_input_required": "NA"},
+            {"clause": "Select", "field": "Risk_Description", "data_type": "string", "default_value_list": "", "response_field_name": "Description", "is_required_in_response": "Y", "user_input_required": "NA"},
+            {"clause": "Select", "field": "Severity", "data_type": "string", "default_value_list": "", "response_field_name": "Severity", "is_required_in_response": "Y", "user_input_required": "NA"},
+            {"clause": "Where", "field": "severity_filter", "data_type": "string", "default_value_list": "High,Medium,Low", "response_field_name": "", "is_required_in_response": "NA", "user_input_required": "Y"},
+        ],
+    }
+    return schemas.get(answer_id, schemas["answer-001"])
+
+
+def generate_api_sql_artifacts(answer_id: str, mapper_rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    From API Mapper configuration, generate SQL View, Sample Data, and API SQL Code Template.
+    """
+    answer_data = get_mock_saved_answer_data(answer_id)
+    select_fields = [r for r in mapper_rows if r.get("clause") == "Select"]
+    where_fields = [r for r in mapper_rows if r.get("clause") == "Where"]
+
+    # Build SQL View (mock)
+    select_clause = ", ".join(
+        f'"{r.get("field", "")}" AS {r.get("response_field_name") or r.get("field", "").replace(" ", "_")}'
+        for r in select_fields
+    )
+    where_clause = " AND ".join(
+        f'{r.get("field", "")} = :{r.get("field", "").replace(" ", "_")}'
+        for r in where_fields
+    ) if where_fields else "1=1"
+
+    sql_view = f"""-- SQL View for Saved Answer
+CREATE OR REPLACE VIEW api_mapper_view AS
+SELECT
+  {select_clause}
+FROM thoughtspot_answer
+WHERE {where_clause};
+"""
+
+    # Sample Data = first few rows from answer data, with response field names
+    sample_data = {
+        "columns": [r.get("response_field_name") or r.get("field") for r in select_fields],
+        "rows": answer_data.get("rows", [])[:5]
+    }
+
+    # API SQL Code Template (mock)
+    api_sql_code_template = f"""-- API SQL Code Template
+-- Generated from API Mapper for answer_id: {answer_id}
+
+-- 1. Query template (GET)
+SELECT {select_clause}
+FROM thoughtspot_answer
+WHERE {where_clause};
+
+-- 2. Response mapping (JSON)
+-- Response fields: {", ".join(r.get("response_field_name") or r.get("field") for r in select_fields)}
+-- User input params: {", ".join(r.get("field") for r in where_fields if r.get("user_input_required") == "Y")}
+"""
+
+    return {
+        "sql_view": sql_view.strip(),
+        "sample_data": sample_data,
+        "api_sql_code_template": api_sql_code_template.strip(),
+    }
