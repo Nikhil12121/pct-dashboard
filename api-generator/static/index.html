@@ -6,42 +6,49 @@
   <title>API Mapper & SQL Generator</title>
   <style>
     * { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 16px; background: #f5f5f5; }
-    .container { max-width: 1400px; margin: 0 auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 16px; background: #f0f2f5; }
+    .container { max-width: 1440px; margin: 0 auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden; }
     .tabs { display: flex; border-bottom: 1px solid #e0e0e0; background: #fafafa; }
-    .tabs button { padding: 12px 20px; border: none; background: none; cursor: pointer; font-size: 14px; color: #666; }
+    .tabs button { padding: 12px 20px; border: none; background: none; cursor: pointer; font-size: 14px; color: #555; }
     .tabs button.active { background: #fff; color: #1976d2; font-weight: 600; border-bottom: 2px solid #1976d2; margin-bottom: -1px; }
     .tabs button:hover:not(.active) { background: #eee; }
     .panel { display: none; padding: 20px; }
     .panel.active { display: block; }
-    .layout { display: grid; grid-template-columns: 240px 1fr; gap: 20px; min-height: 400px; }
+    .layout { display: grid; grid-template-columns: 260px 1fr; gap: 24px; min-height: 420px; }
     .source-list { list-style: none; margin: 0; padding: 0; }
-    .source-list li { padding: 10px 12px; cursor: pointer; border-radius: 6px; margin-bottom: 4px; font-size: 13px; }
+    .source-list li { padding: 12px 14px; cursor: pointer; border-radius: 6px; margin-bottom: 4px; font-size: 13px; border-left: 3px solid transparent; }
     .source-list li:hover { background: #e3f2fd; }
-    .source-list li.selected { background: #1976d2; color: #fff; }
+    .source-list li.selected { background: #e3f2fd; color: #1565c0; border-left-color: #1976d2; font-weight: 500; }
     .table-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { border: 1px solid #e0e0e0; padding: 8px 10px; text-align: left; }
-    th { background: #f5f5f5; font-weight: 600; }
+    th { background: #f5f5f5; font-weight: 600; color: #333; }
     tr:hover { background: #fafafa; }
     input, select { width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
     select { cursor: pointer; }
     .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; }
     .btn-primary { background: #1976d2; color: #fff; }
     .btn-primary:hover { background: #1565c0; }
+    .btn-primary:disabled { background: #90caf9; cursor: not-allowed; }
     .btn-secondary { background: #e0e0e0; color: #333; margin-left: 8px; }
     .btn-secondary:hover { background: #d0d0d0; }
-    .output-tabs { margin-top: 16px; }
+    .output-section { margin-top: 20px; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+    .output-section h3 { margin: 0; padding: 12px 16px; background: #f5f5f5; font-size: 14px; color: #333; border-bottom: 1px solid #e0e0e0; }
+    .output-tabs { margin-top: 0; }
     .output-tabs .tabs { margin-bottom: 0; }
-    .output-content { padding: 16px; background: #fafafa; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 8px 8px; min-height: 120px; font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+    .output-content { padding: 16px; background: #fafafa; border: none; border-top: none; border-radius: 0; min-height: 160px; font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+    .output-placeholder { color: #888; font-style: italic; font-family: inherit; }
     .screen-nav { margin-bottom: 16px; display: flex; gap: 8px; }
     .screen-nav .btn { flex: none; }
-    h2 { margin: 0 0 16px 0; font-size: 18px; color: #333; }
-    .subtitle { color: #666; font-size: 13px; margin-bottom: 12px; }
+    h2 { margin: 0 0 8px 0; font-size: 20px; color: #1a1a1a; }
+    .subtitle { color: #555; font-size: 13px; margin-bottom: 16px; line-height: 1.5; }
+    .step { font-size: 12px; color: #1976d2; font-weight: 600; margin-bottom: 8px; }
+    .helper { font-size: 12px; color: #666; margin-top: 8px; padding: 10px; background: #f9f9f9; border-radius: 6px; border-left: 3px solid #1976d2; }
+    #apiBaseUrl { font-size: 11px; color: #888; margin-bottom: 12px; }
     .prop-table th { min-width: 140px; }
     .prop-table td { vertical-align: top; }
     .prop-table textarea { width: 100%; min-height: 60px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-family: inherit; resize: vertical; }
-    #apiBaseUrl { font-size: 11px; color: #666; margin-bottom: 12px; }
+    .selected-source { font-size: 12px; color: #1976d2; margin-bottom: 8px; }
   </style>
 </head>
 <body>
@@ -53,16 +60,18 @@
 
     <div id="screen1" class="panel active">
       <h2>API Mapper & SQL Generator</h2>
-      <p class="subtitle">Select a TS Answer to load schema, then configure and generate SQL View, Sample Data, and API SQL Code Template.</p>
+      <p class="subtitle">Select a Thoughtspot Saved Answer → configure mapping (response names, required flags, API parameters) → click Generate to get SQL View, Sample Data, and API SQL Code Template.</p>
       <p id="apiBaseUrl"></p>
 
       <div class="layout">
         <div>
+          <div class="step">Step 1: Select a TS Answer</div>
           <div class="tabs">
             <button type="button" class="tab active" data-tab="source">Source</button>
             <button type="button" class="tab" data-tab="swagger">Swagger</button>
           </div>
           <div class="panel active" id="source-panel">
+            <p class="selected-source" id="selectedSourceLabel">No answer selected</p>
             <ul class="source-list" id="sourceList"></ul>
           </div>
           <div class="panel" id="swagger-panel">
@@ -70,6 +79,7 @@
           </div>
         </div>
         <div>
+          <div class="step">Step 2: Configure API Mapper (optional)</div>
           <div class="tabs">
             <button type="button" class="tab active" data-tab="mapper">API Mapper</button>
             <button type="button" class="tab" data-tab="define">Define</button>
@@ -91,22 +101,33 @@
                 <tbody id="mapperBody"></tbody>
               </table>
             </div>
+            <p class="helper"><strong>Tip:</strong> <em>User Input Required = Y</em> → this field becomes an API parameter: for <strong>Where</strong> rows (e.g. Year → <code>year_min</code>, <code>year_max</code>); for <strong>Select</strong> rows it adds a filter (e.g. <code>clinical_study_key=CS-2024-001</code>). <em>Is required in Response</em>: <strong>Y</strong> = must appear in every JSON row; <strong>N</strong> = omit. After Generate, use the <strong>runnable API URL</strong> in your frontend.</p>
+            <p class="helper" style="margin-top: 8px;">Change any cell in the table (Response Field Name, Is required in Response, User Input Required), then click <strong>Generate</strong> again. The SQL View, Sample Data, and API SQL Code Template will update to match.</p>
             <div style="margin-top: 16px;">
+              <span class="step">Step 3: Generate</span>
               <button type="button" class="btn btn-primary" id="btnGenerate">Generate</button>
             </div>
-            <div class="output-tabs">
-              <div class="tabs">
-                <button type="button" class="output-tab active" data-output="sqlview">SQL View</button>
-                <button type="button" class="output-tab" data-output="sampledata">Sample Data</button>
-                <button type="button" class="output-tab" data-output="apisql">API SQL Code Template</button>
+            <div id="usedConfigBox" class="helper" style="margin-top: 12px; display: none;"></div>
+            <div id="runApiBox" class="helper" style="margin-top: 12px; display: none;">
+              <strong>Use this API in your frontend:</strong>
+              <a id="runApiLink" href="" target="_blank" rel="noopener"></a>
+            </div>
+            <div class="output-section">
+              <h3>Output (after Generate)</h3>
+              <div class="output-tabs">
+                <div class="tabs">
+                  <button type="button" class="output-tab active" data-output="sqlview">SQL View</button>
+                  <button type="button" class="output-tab" data-output="sampledata">Sample Data</button>
+                  <button type="button" class="output-tab" data-output="apisql">API SQL Code Template</button>
+                </div>
+                <div id="outputSqlView" class="output-content output-panel active"></div>
+                <div id="outputSampleData" class="output-content output-panel"></div>
+                <div id="outputApiSql" class="output-content output-panel"></div>
               </div>
-              <div id="outputSqlView" class="output-content output-panel active"></div>
-              <div id="outputSampleData" class="output-content output-panel"></div>
-              <div id="outputApiSql" class="output-content output-panel"></div>
             </div>
           </div>
           <div class="panel" id="define-panel">
-            <p class="subtitle">Define tab: use Screen 2 for full Property & Description table.</p>
+            <p class="subtitle">Use Screen 2 for the full Property & Description table.</p>
           </div>
         </div>
       </div>
@@ -114,7 +135,7 @@
 
     <div id="screen2" class="panel">
       <h2>Property & Description</h2>
-      <p class="subtitle">Same table UI for API properties. Fill Value and Notes as needed.</p>
+      <p class="subtitle">Same table UI for API properties (Method, Version, API Name, Full API Call, Sample Data, API SQL Code Template, etc.). Values for Sample Data and API SQL Code Template are filled after you Generate on Screen 1.</p>
       <div class="table-wrap">
         <table class="prop-table" id="propTable">
           <thead>
@@ -136,21 +157,41 @@
       const API_BASE = window.location.origin;
       document.getElementById('apiBaseUrl').textContent = 'API base: ' + API_BASE;
 
+      const OUTPUT_PLACEHOLDER = 'Click **Generate** to see SQL View, Sample Data, and API SQL Code Template.';
+      const OUTPUT_PANELS = ['outputSqlView', 'outputSampleData', 'outputApiSql'];
+
       let selectedAnswerId = null;
+      let selectedAnswerName = '';
       let mapperSchema = [];
+      let generated = false;
 
       const propRows = [
-        { property: 'Method', description: 'HTTP method', value: 'GET|PUT|PATCH', notes: '' },
-        { property: 'Version', description: 'API version', value: '', notes: '' },
+        { property: 'Method', description: 'HTTP method', value: 'GET', notes: '' },
+        { property: 'Version', description: 'API version', value: 'v1', notes: '' },
         { property: 'API Name', description: 'API name', value: '', notes: '' },
         { property: 'Full API Call', description: 'Full API URL', value: '', notes: '' },
         { property: 'Description', description: 'API description', value: '', notes: '' },
         { property: 'Swagger Update', description: 'Update Swagger', value: 'Y', notes: '' },
         { property: 'Response JSON Schema', description: 'JSON schema', value: '', notes: '' },
         { property: 'Response JSON Sample', description: 'Sample response', value: '', notes: '' },
-        { property: 'Sample Data', description: 'Sample data', value: '', notes: '' },
-        { property: 'API SQL Code Template', description: 'SQL template', value: '', notes: '' },
+        { property: 'Sample Data', description: 'Sample data from Generate', value: '', notes: '' },
+        { property: 'API SQL Code Template', description: 'SQL template from Generate', value: '', notes: '' },
       ];
+
+      function setOutputPlaceholder() {
+        generated = false;
+        OUTPUT_PANELS.forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) {
+            el.textContent = OUTPUT_PLACEHOLDER;
+            el.classList.add('output-placeholder');
+          }
+        });
+        var runBox = document.getElementById('runApiBox');
+        if (runBox) runBox.style.display = 'none';
+        var cfgBox = document.getElementById('usedConfigBox');
+        if (cfgBox) { cfgBox.style.display = 'none'; cfgBox.innerHTML = ''; }
+      }
 
       function renderPropTable() {
         const tbody = document.getElementById('propBody');
@@ -172,13 +213,16 @@
           const id = a.id || a.answer_id;
           const name = a.name || 'TS Answer ' + id;
           const isSelected = selectedAnswerId === id;
-          return '<li class="' + (isSelected ? 'selected' : '') + '" data-answer-id="' + escapeHtml(id) + '">' + escapeHtml(name) + '</li>';
+          return '<li class="' + (isSelected ? 'selected' : '') + '" data-answer-id="' + escapeHtml(id) + '" data-answer-name="' + escapeHtml(name) + '">' + escapeHtml(name) + '</li>';
         }).join('');
         ul.querySelectorAll('li').forEach(function(li) {
           li.addEventListener('click', function() {
             selectedAnswerId = li.getAttribute('data-answer-id');
+            selectedAnswerName = li.getAttribute('data-answer-name') || selectedAnswerId;
             ul.querySelectorAll('li').forEach(function(l) { l.classList.remove('selected'); });
             li.classList.add('selected');
+            document.getElementById('selectedSourceLabel').textContent = 'Selected: ' + selectedAnswerName;
+            setOutputPlaceholder();
             loadSchema(selectedAnswerId);
           });
         });
@@ -218,14 +262,18 @@
         document.querySelectorAll('#mapperBody tr').forEach(function(tr) {
           const idx = parseInt(tr.getAttribute('data-index'), 10);
           const base = mapperSchema[idx] || {};
+          var defEl = tr.querySelector('[data-col="default_value_list"]');
+          var respEl = tr.querySelector('[data-col="response_field_name"]');
+          var reqEl = tr.querySelector('[data-col="is_required_in_response"]');
+          var userEl = tr.querySelector('[data-col="user_input_required"]');
           const r = {
             clause: base.clause,
             field: base.field,
             data_type: base.data_type,
-            default_value_list: (tr.querySelector('[data-col="default_value_list"]') || {}).value || '',
-            response_field_name: (tr.querySelector('[data-col="response_field_name"]') || {}).value || '',
-            is_required_in_response: (tr.querySelector('[data-col="is_required_in_response"]') || {}).value || 'NA',
-            user_input_required: (tr.querySelector('[data-col="user_input_required"]') || {}).value || 'NA',
+            default_value_list: (defEl && defEl.value ? defEl.value : '').trim(),
+            response_field_name: (respEl && respEl.value != null ? respEl.value : '').trim(),
+            is_required_in_response: (reqEl && reqEl.value ? reqEl.value : 'NA').trim(),
+            user_input_required: (userEl && userEl.value ? userEl.value : 'NA').trim(),
           };
           rows.push(r);
         });
@@ -245,13 +293,38 @@
         })
           .then(function(r) { return r.json(); })
           .then(function(data) {
-            document.getElementById('outputSqlView').textContent = data.sql_view || '';
-            document.getElementById('outputSampleData').textContent = JSON.stringify(data.sample_data || {}, null, 2);
-            document.getElementById('outputApiSql').textContent = data.api_sql_code_template || '';
-            // Update Screen 2 Sample Data and API SQL Template values
+            generated = true;
+            var sqlEl = document.getElementById('outputSqlView');
+            var sampleEl = document.getElementById('outputSampleData');
+            var apiEl = document.getElementById('outputApiSql');
+            sqlEl.classList.remove('output-placeholder');
+            sampleEl.classList.remove('output-placeholder');
+            apiEl.classList.remove('output-placeholder');
+            sqlEl.textContent = data.sql_view || '';
+            sampleEl.textContent = JSON.stringify(data.sample_data || {}, null, 2);
+            apiEl.textContent = data.api_sql_code_template || '';
             propRows[8].value = JSON.stringify(data.sample_data || {}, null, 2);
             propRows[9].value = data.api_sql_code_template || '';
             renderPropTable();
+            var runBox = document.getElementById('runApiBox');
+            var runLink = document.getElementById('runApiLink');
+            var params = data.user_params || [];
+            var q = params.map(function(p) {
+              if (p === 'year_min') return 'year_min=2021';
+              if (p === 'year_max') return 'year_max=2028';
+              if (p === 'clinical_study_key') return 'clinical_study_key=CS-2024-001';
+              return p + '=';
+            }).join('&');
+            var runUrl = API_BASE + '/api/v1/run/' + encodeURIComponent(selectedAnswerId) + (q ? '?' + q : '');
+            runLink.href = runUrl;
+            runLink.textContent = runUrl;
+            runBox.style.display = 'block';
+            var used = data.used_config;
+            var cfgBox = document.getElementById('usedConfigBox');
+            if (cfgBox && used) {
+              cfgBox.innerHTML = '<strong>Your mapping was applied:</strong> Required: ' + (used.required_fields && used.required_fields.length ? used.required_fields.join(', ') : 'none') + '. Omit: ' + (used.optional_fields && used.optional_fields.length ? used.optional_fields.length + ' fields' : 'none') + '. API params: ' + (used.user_params && used.user_params.length ? used.user_params.join(', ') : 'none') + '. Response columns: ' + (used.response_columns && used.response_columns.length ? used.response_columns.slice(0, 5).join(', ') + (used.response_columns.length > 5 ? '...' : '') : '') + '.';
+              cfgBox.style.display = 'block';
+            }
           })
           .catch(function(err) {
             console.error(err);
@@ -296,24 +369,34 @@
       fetch(API_BASE + '/api/v1/saved-answers')
         .then(function(r) { return r.json(); })
         .then(function(data) {
-          renderSourceList(data.data || []);
-          if ((data.data || []).length > 0 && !selectedAnswerId) {
-            selectedAnswerId = data.data[0].id || data.data[0].answer_id;
-            document.querySelector('#sourceList li') && document.querySelector('#sourceList li').classList.add('selected');
+          const list = data.data || [];
+          renderSourceList(list);
+          if (list.length > 0 && !selectedAnswerId) {
+            selectedAnswerId = list[0].id || list[0].answer_id;
+            selectedAnswerName = list[0].name || selectedAnswerId;
+            document.getElementById('selectedSourceLabel').textContent = 'Selected: ' + selectedAnswerName;
+            var firstLi = document.querySelector('#sourceList li');
+            if (firstLi) firstLi.classList.add('selected');
+            setOutputPlaceholder();
             loadSchema(selectedAnswerId);
           }
         })
         .catch(function() {
           renderSourceList([
-            { id: 'answer-001', name: 'TS Answer1 (Monthly Pipeline Health)' },
-            { id: 'answer-002', name: 'TS Answer2 (Clinical Trial Milestones)' },
-            { id: 'answer-003', name: 'TS Answer3 (Budget vs Actuals)' },
-            { id: 'answer-004', name: 'TS Answer4 (Risk Register)' },
+            { id: 'ipe-forecast-summary', name: 'IPE Forecast Summary' },
+            { id: 'answer-001', name: 'Monthly Pipeline Health Report' },
+            { id: 'answer-002', name: 'Clinical Trial Milestones' },
+            { id: 'answer-003', name: 'Budget vs Actuals Analysis' },
+            { id: 'answer-004', name: 'Risk Register - Active Risks' },
           ]);
-          selectedAnswerId = 'answer-001';
-          loadSchema('answer-001');
+          selectedAnswerId = 'ipe-forecast-summary';
+          selectedAnswerName = 'IPE Forecast Summary';
+          document.getElementById('selectedSourceLabel').textContent = 'Selected: ' + selectedAnswerName;
+          setOutputPlaceholder();
+          loadSchema('ipe-forecast-summary');
         });
 
+      setOutputPlaceholder();
       renderPropTable();
     })();
   </script>

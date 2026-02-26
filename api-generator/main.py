@@ -3,7 +3,7 @@ BE API Generator - FastAPI Backend
 Connects Thoughtspot Saved Answers to Frontend UI
 """
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -21,6 +21,7 @@ from mock_data import (
     get_mock_sql_result,
     get_api_mapper_schema,
     generate_api_sql_artifacts,
+    run_answer_api,
 )
 from sql_parser import parse_thoughtspot_answer
 
@@ -116,6 +117,21 @@ async def generate_api_mapper(generate_req: GenerateRequest):
     try:
         result = generate_api_sql_artifacts(generate_req.answer_id, generate_req.mapper_rows)
         return {"status": "success", **result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/run/{answer_id}", tags=["API Mapper"])
+async def run_api(answer_id: str, request: Request):
+    """
+    Runnable API for frontend: GET with query params to filter and get JSON.
+    Params match the API SQL Code Template (e.g. year_min, year_max, clinical_study_key).
+    Example: GET /api/v1/run/ipe-forecast-summary?year_min=2024&year_max=2026
+    """
+    try:
+        params = dict(request.query_params)
+        result = run_answer_api(answer_id, params)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
